@@ -99,15 +99,12 @@
             font-size: 0.9rem;
         }
         
-        /* Sorting Buttons */
         .btn-sort { background: #f1f5f9; color: var(--text-sub); font-size: 1.1rem; }
-        
         .btn-check { background: #dcfce7; color: var(--success); }
         .btn-check.active { background: var(--success); color: white; }
         .btn-edit { background: #fef3c7; color: var(--warning); }
         .btn-delete { background: #fee2e2; color: var(--danger); }
 
-        /* FAB and Modal */
         .fab {
             position: fixed;
             bottom: 30px;
@@ -195,8 +192,8 @@
         const date = document.getElementById('dateInput').value;
         if (!text) return;
 
-        // unshift adds to the START of the array
-        tasks.unshift({
+        // Using .push() so new tasks appear at the bottom
+        tasks.push({
             id: Date.now(),
             text: text,
             type: date ? "once" : "daily",
@@ -209,14 +206,12 @@
         closeModal();
     }
 
-    // NEW SORTING FUNCTION
     function moveTask(id, direction) {
         const index = tasks.findIndex(t => t.id === id);
         if (index < 0) return;
 
         const newIndex = index + direction;
         if (newIndex >= 0 && newIndex < tasks.length) {
-            // Swap positions
             const temp = tasks[index];
             tasks[index] = tasks[newIndex];
             tasks[newIndex] = temp;
@@ -261,7 +256,7 @@
         dailyList.innerHTML = '';
         onceList.innerHTML = '';
 
-        tasks.forEach((task, index) => {
+        tasks.forEach((task) => {
             const isDoneOnViewDate = task.lastCompletedDate === viewDate;
             
             const taskHtml = `
@@ -290,6 +285,9 @@
                 onceList.insertAdjacentHTML('beforeend', taskHtml);
             }
         });
+
+        if (!dailyList.innerHTML) dailyList.innerHTML = '<p style="color:#94a3b8; font-size:0.9rem; text-align:center;">No daily routine set.</p>';
+        if (!onceList.innerHTML) onceList.innerHTML = '<p style="color:#94a3b8; font-size:0.9rem; text-align:center;">No tasks for this date.</p>';
     }
 
     render();
