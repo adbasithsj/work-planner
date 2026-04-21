@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Work Planner</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --bg: #f1f5f9;
+            --card: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: var(--bg); 
+            color: var(--text-main); 
+            margin: 0; 
+            padding-bottom: 100px; /* Space for bottom nav */
+        }
+
+        /* Header */
+        header {
+            background: var(--card);
+            padding: 20px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+
+        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
+
+        /* Date Selector */
+        .date-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 12px;
+        }
+        .date-bar input {
+            border: none;
+            background: transparent;
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 1rem;
+            outline: none;
+            flex-grow: 1;
+        }
+
+        /* Task Cards */
+        .section-header {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-sub);
+            margin: 20px 0 10px 5px;
+            font-weight: 600;
+        }
+
+        .task-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            transition: transform 0.1s;
+        }
+        .task-card:active { transform: scale(0.98); }
+
+        .task-content { flex-grow: 1; margin-right: 15px; }
+        .task-title { font-weight: 600; font-size: 1rem; margin-bottom: 4px; display: block; }
+        .task-meta { font-size: 0.75rem; color: var(--text-sub); }
+
+        .done { background: #f8fafc; }
+        .done .task-title { text-decoration: line-through; color: var(--text-sub); }
+
+        /* Action Buttons */
+        .actions { display: flex; gap: 8px; }
+        .btn-icon {
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+        .btn-check { background: #dcfce7; color: var(--success); }
+        .btn-check.active { background: var(--success); color: white; }
+        .btn-edit { background: #fef3c7; color: var(--warning); }
+        .btn-delete { background: #fee2e2; color: var(--danger); }
+
+        /* Modal / Add Task UI */
+        #addModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 100;
+            align-items: flex-end;
+        }
+        .modal-content {
+            background: var(--card);
+            width: 100%;
+            padding: 25px;
+            border-radius: 24px 24px 0 0;
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 5px; }
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        /* Floating Action Button */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+            border: none;
+            z-index: 20;
+        }
+
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Work Planner</h1>
+    <div id="status-dot" style="width: 10px; height: 10px; border-radius: 50%; background: var(--success);"></div>
+</header>
+
+<div class="container">
+    <div class="date-bar">
+        <span>📅</span>
+        <input type="date" id="viewDateSelector" onchange="render()">
+        <button onclick="setToToday()" style="border:none; background:white; padding:4px 8px; border-radius:6px; font-size:0.8rem;">Today</button>
+    </div>
+
+    <div class="section-header">Daily Routine</div>
+    <div id="dailyList"></div>
+
+    <div class="section-header">One-Time Tasks</div>
+    <div id="onceList"></div>
+</div>
+
+<button class="fab" onclick="openModal()">+</button>
+
+<div id="addModal" onclick="closeModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 style="margin-top:0">Add New Work</h3>
+        <div class="form-group">
+            <label>What needs to be done?</label>
+            <input type="text" id="taskInput" class="form-control" placeholder="e.g. Update inventory">
+        </div>
+        <div class="form-group">
+            <label>Date (Optional)</label>
+            <input type="date" id="dateInput" class="form-control">
+            <small style="color:var(--text-sub)">Leave empty to repeat every day.</small>
+        </div>
+        <button class="btn-submit" onclick="addTask()">Save Task</button>
+        <button onclick="closeModal()" style="width:100%; background:none; border:none; color:var(--text-sub); margin-top:10px;">Cancel</button>
+    </div>
+</div>
+
+<script>
+    let tasks = JSON.parse(localStorage.getItem('myWorkTasks')) || [];
+    const viewDateInput = document.getElementById('viewDateSelector');
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Initialize
+    viewDateInput.value = todayStr;
+
+    function openModal() { document.getElementById('addModal').style.display = 'flex'; }
+    function closeModal() { document.getElementById('addModal').style.display = 'none'; }
+    
+    function setToToday() {
+        viewDateInput.value = todayStr;
+        render();
+    }
+
+    function addTask() {
+        const text = document.getElementById('taskInput').value;
+        const date = document.getElementById('dateInput').value;
+        
+        if (!text) return;
+
+        tasks.push({
+            id: Date.now(),
+            text: text,
+            type: date ? "once" : "daily",
+            targetDate: date || null,
+            lastCompletedDate: null 
+        });
+
+        saveAndRefresh();
+        document.getElementById('taskInput').value = '';
+        document.getElementById('dateInput').value = '';
+        closeModal();
+    }
+
+    function editTask(id) {
+        const task = tasks.find(t => t.id === id);
+        const newText = prompt("Update Task:", task.text);
+        if (newText) {
+            task.text = newText;
+            saveAndRefresh();
+        }
+    }
+
+    function toggleTask(id) {
+        const viewDate = viewDateInput.value;
+        tasks = tasks.map(task => {
+            if (task.id === id) {
+                task.lastCompletedDate = (task.lastCompletedDate === viewDate) ? null : viewDate;
+            }
+            return task;
+        });
+        saveAndRefresh();
+    }
+
+    function deleteTask(id) {
+        if(confirm("Delete this work?")) {
+            tasks = tasks.filter(t => t.id !== id);
+            saveAndRefresh();
+        }
+    }
+
+    function saveAndRefresh() {
+        localStorage.setItem('myWorkTasks', JSON.stringify(tasks));
+        render();
+    }
+
+    function render() {
+        const dailyList = document.getElementById('dailyList');
+        const onceList = document.getElementById('onceList');
+        const viewDate = viewDateInput.value;
+
+        dailyList.innerHTML = '';
+        onceList.innerHTML = '';
+
+        tasks.forEach(task => {
+            const isDoneOnViewDate = task.lastCompletedDate === viewDate;
+            
+            const taskHtml = `
+                <div class="task-card ${isDoneOnViewDate ? 'done' : ''}">
+                    <div class="task-content" onclick="toggleTask(${task.id})">
+                        <span class="task-title">${task.text}</span>
+                        <span class="task-meta">${task.type === 'daily' ? '🔄 Daily' : '📅 ' + task.targetDate}</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-icon btn-check ${isDoneOnViewDate ? 'active' : ''}" onclick="toggleTask(${task.id})">
+                            ${isDoneOnViewDate ? '✓' : '○'}
+                        </button>
+                        <button class="btn-icon btn-edit" onclick="editTask(${task.id})">✎</button>
+                        <button class="btn-icon btn-delete" onclick="deleteTask(${task.id})">✕</button>
+                    </div>
+                </div>
+            `;
+
+            if (task.type === "daily") {
+                dailyList.insertAdjacentHTML('beforeend', taskHtml);
+            } else if (task.type === "once" && task.targetDate === viewDate) {
+                onceList.insertAdjacentHTML('beforeend', taskHtml);
+            }
+        });
+
+        if (!dailyList.innerHTML) dailyList.innerHTML = '<p style="color:#94a3b8; font-size:0.9rem; text-align:center;">No daily routine set.</p>';
+        if (!onceList.innerHTML) onceList.innerHTML = '<p style="color:#94a3b8; font-size:0.9rem; text-align:center;">No tasks for this date.</p>';
+    }
+
+    render();
+</script>
+
+</body>
+</html>
