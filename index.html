@@ -40,24 +40,32 @@
         header h1 { margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--primary); }
         .container { padding: 15px; max-width: 600px; margin: 0 auto; }
 
+        .top-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
         .date-bar {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 20px;
             background: #e2e8f0;
             padding: 8px 12px;
             border-radius: 12px;
         }
         .date-bar input {
-            border: none;
-            background: transparent;
-            font-weight: 600;
-            color: var(--text-main);
-            font-size: 1rem;
-            outline: none;
-            flex-grow: 1;
+            border: none; background: transparent; font-weight: 600;
+            color: var(--text-main); font-size: 1rem; outline: none; flex-grow: 1;
         }
+
+        .filter-tabs { display: flex; gap: 5px; }
+        .tab-btn {
+            flex: 1; border: none; padding: 10px; border-radius: 10px;
+            font-weight: 600; cursor: pointer; background: #cbd5e1; color: var(--text-sub);
+        }
+        .tab-btn.active { background: var(--primary); color: white; }
 
         .section-header {
             font-size: 0.85rem;
@@ -88,15 +96,9 @@
 
         .actions { display: flex; gap: 4px; align-items: center; }
         .btn-icon {
-            border: none;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 0.9rem;
+            border: none; width: 32px; height: 32px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; font-size: 0.9rem;
         }
         
         .btn-sort { background: #f1f5f9; color: var(--text-sub); font-size: 1.1rem; }
@@ -106,37 +108,20 @@
         .btn-delete { background: #fee2e2; color: var(--danger); }
 
         .fab {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 60px;
-            height: 60px;
-            background: var(--primary);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
-            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
-            border: none;
-            z-index: 20;
+            position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
+            background: var(--primary); color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+            border: none; z-index: 20;
         }
 
         #addModal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 100;
-            align-items: flex-end;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 100; align-items: flex-end;
         }
         .modal-content {
-            background: var(--card);
-            width: 100%;
-            padding: 25px;
-            border-radius: 24px 24px 0 0;
-            animation: slideUp 0.2s ease-out;
+            background: var(--card); width: 100%; padding: 25px;
+            border-radius: 24px 24px 0 0; animation: slideUp 0.2s ease-out;
         }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
@@ -151,16 +136,23 @@
 </header>
 
 <div class="container">
-    <div class="date-bar">
-        <span>📅</span>
-        <input type="date" id="viewDateSelector" onchange="render()">
-        <button onclick="setToToday()" style="border:none; background:white; padding:4px 8px; border-radius:6px;">Today</button>
+    <div class="top-bar">
+        <div class="filter-tabs">
+            <button id="tabToday" class="tab-btn active" onclick="setViewMode('today')">Calendar View</button>
+            <button id="tabPending" class="tab-btn" onclick="setViewMode('pending')">All Pending</button>
+        </div>
+        
+        <div class="date-bar" id="dateBarContainer">
+            <span>📅</span>
+            <input type="date" id="viewDateSelector" onchange="render()">
+            <button onclick="setToToday()" style="border:none; background:white; padding:4px 8px; border-radius:6px;">Today</button>
+        </div>
     </div>
 
-    <div class="section-header">Daily Routine</div>
+    <div id="routineHeader" class="section-header">Daily Routine</div>
     <div id="dailyList"></div>
 
-    <div class="section-header">One-Time Tasks</div>
+    <div id="occasionalHeader" class="section-header">One-Time Tasks</div>
     <div id="onceList"></div>
 </div>
 
@@ -178,10 +170,19 @@
 
 <script>
     let tasks = JSON.parse(localStorage.getItem('myWorkTasks')) || [];
+    let viewMode = 'today'; // 'today' or 'pending'
     const viewDateInput = document.getElementById('viewDateSelector');
     const todayStr = new Date().toISOString().split('T')[0];
 
     viewDateInput.value = todayStr;
+
+    function setViewMode(mode) {
+        viewMode = mode;
+        document.getElementById('tabToday').classList.toggle('active', mode === 'today');
+        document.getElementById('tabPending').classList.toggle('active', mode === 'pending');
+        document.getElementById('dateBarContainer').style.display = (mode === 'today') ? 'flex' : 'none';
+        render();
+    }
 
     function openModal() { document.getElementById('addModal').style.display = 'flex'; }
     function closeModal() { document.getElementById('addModal').style.display = 'none'; }
@@ -192,7 +193,6 @@
         const date = document.getElementById('dateInput').value;
         if (!text) return;
 
-        // Using .push() so new tasks appear at the bottom
         tasks.push({
             id: Date.now(),
             text: text,
@@ -209,7 +209,6 @@
     function moveTask(id, direction) {
         const index = tasks.findIndex(t => t.id === id);
         if (index < 0) return;
-
         const newIndex = index + direction;
         if (newIndex >= 0 && newIndex < tasks.length) {
             const temp = tasks[index];
@@ -225,11 +224,12 @@
         if (newText) { task.text = newText; saveAndRefresh(); }
     }
 
-    function toggleTask(id) {
-        const viewDate = viewDateInput.value;
+    function toggleTask(id, customDate) {
+        // In pending mode, we mark it done for TODAY. In calendar mode, for the SELECTED date.
+        const completionDate = customDate || (viewMode === 'today' ? viewDateInput.value : todayStr);
         tasks = tasks.map(task => {
             if (task.id === id) {
-                task.lastCompletedDate = (task.lastCompletedDate === viewDate) ? null : viewDate;
+                task.lastCompletedDate = (task.lastCompletedDate === completionDate) ? null : completionDate;
             }
             return task;
         });
@@ -256,8 +256,18 @@
         dailyList.innerHTML = '';
         onceList.innerHTML = '';
 
+        // UI Adjustments for mode
+        if (viewMode === 'pending') {
+            document.getElementById('routineHeader').style.display = 'none';
+            document.getElementById('occasionalHeader').innerText = 'Unfinished One-Time Tasks';
+        } else {
+            document.getElementById('routineHeader').style.display = 'block';
+            document.getElementById('occasionalHeader').innerText = 'One-Time Tasks';
+        }
+
         tasks.forEach((task) => {
             const isDoneOnViewDate = task.lastCompletedDate === viewDate;
+            const isDoneEver = task.lastCompletedDate !== null;
             
             const taskHtml = `
                 <div class="task-card ${isDoneOnViewDate ? 'done' : ''}">
@@ -265,12 +275,12 @@
                         <button class="btn-icon btn-sort" onclick="moveTask(${task.id}, -1)">↑</button>
                         <button class="btn-icon btn-sort" onclick="moveTask(${task.id}, 1)">↓</button>
                     </div>
-                    <div class="task-content" onclick="toggleTask(${task.id})">
+                    <div class="task-content" onclick="toggleTask(${task.id}, '${task.targetDate}')">
                         <span class="task-title">${task.text}</span>
-                        <span class="task-meta">${task.type === 'daily' ? '🔄 Daily' : '📅 ' + task.targetDate}</span>
+                        <span class="task-meta">${task.type === 'daily' ? '🔄 Daily' : '📅 ' + (task.targetDate || 'No Date')}</span>
                     </div>
                     <div class="actions">
-                        <button class="btn-icon btn-check ${isDoneOnViewDate ? 'active' : ''}" onclick="toggleTask(${task.id})">
+                        <button class="btn-icon btn-check ${isDoneOnViewDate ? 'active' : ''}" onclick="toggleTask(${task.id}, '${task.targetDate}')">
                             ${isDoneOnViewDate ? '✓' : '○'}
                         </button>
                         <button class="btn-icon btn-edit" onclick="editTask(${task.id})">✎</button>
@@ -279,15 +289,22 @@
                 </div>
             `;
 
-            if (task.type === "daily") {
-                dailyList.insertAdjacentHTML('beforeend', taskHtml);
-            } else if (task.type === "once" && task.targetDate === viewDate) {
-                onceList.insertAdjacentHTML('beforeend', taskHtml);
+            if (viewMode === 'today') {
+                if (task.type === "daily") {
+                    dailyList.insertAdjacentHTML('beforeend', taskHtml);
+                } else if (task.type === "once" && task.targetDate === viewDate) {
+                    onceList.insertAdjacentHTML('beforeend', taskHtml);
+                }
+            } else {
+                // Pending Mode: Only show 'once' tasks that are NOT done
+                if (task.type === "once" && !isDoneEver) {
+                    onceList.insertAdjacentHTML('beforeend', taskHtml);
+                }
             }
         });
 
-        if (!dailyList.innerHTML) dailyList.innerHTML = '<p style="color:#94a3b8; font-size:0.9rem; text-align:center;">No daily routine set.</p>';
-        if (!onceList.innerHTML) onceList.innerHTML = '<p style="color:#94a3b8; font-size:0.9rem; text-align:center;">No tasks for this date.</p>';
+        if (!dailyList.innerHTML && viewMode === 'today') dailyList.innerHTML = '<p style="color:#94a3b8; font-size:0.9rem; text-align:center;">No daily routine.</p>';
+        if (!onceList.innerHTML) onceList.innerHTML = '<p style="color:#94a3b8; font-size:0.9rem; text-align:center;">No tasks found.</p>';
     }
 
     render();
